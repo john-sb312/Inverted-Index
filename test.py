@@ -1,88 +1,38 @@
 import json
 import os
-import argparse
-from nltk.stem import SnowballStemmer
+from typing import List
+from tkinter import *
 from nltk.tokenize import word_tokenize
 from typing import List
-from shuntingyard_implement import ShuntingYard
-from shuntingyard_implement import is_term
+from shuntingyard_implement import *
 
-#dictionary = json.load(open("dictionary.json"))
-#postings = json.load(open("posting_lists.json"))
-DEFAULT_DOCUMENTS_JSON = r"../index_builder/documents.json"
-DEFAULT_INDEX_JSON = r"./index.json"
+dictionary_list = json.load(open("dictionary.json"))
+posting_list = json.load(open("posting_lists.json"))
+docids_list  = json.load(open("docids.json"))
+docids = set([value for value in docids_list.values()])
 
 def perform_AND(left: List[int], right: List[int]) -> List[int]:
-    l_pos = 0
-    r_pos = 0
     result = []
-
-    while l_pos < len(left) and r_pos < len(right):
-        if left[l_pos] == right[r_pos]:
-            result.append(left[l_pos])
-            l_pos += 1
-            r_pos += 1
-        elif left[l_pos] < right[r_pos]:
-            l_pos += 1
-        else:
-            r_pos += 1
-
+    for element in left:
+        if element in right:
+            result.append(element)
     return result
 
 
 def perform_OR(left: List[int], right: List[int]) -> List[int]:
-    l_pos = 0
-    r_pos = 0
     result = []
-
-    while l_pos < len(left) or r_pos < len(right):
-        if l_pos == len(left):
-            result += right[r_pos:]
-            break
-        elif r_pos == len(right):
-            result += left[l_pos:]
-            break
-
-        elif left[l_pos] == right[r_pos]:
-            result.append(left[l_pos])
-            l_pos += 1
-            r_pos += 1
-        elif left[l_pos] < right[r_pos]:
-            result.append(left[l_pos])
-            l_pos += 1
-        else:
-            result.append(right[r_pos])
-            r_pos += 1
-
+    result = list(set(left) | set(right))
     return result
 
 
-def perform_NOT(exclude: List[int], all_document_ids) -> List[int]:
-    result = list(all_document_ids.difference(set(exclude)))
-    result.sort()
+def perform_NOT(exclude: List[int], docids) -> List[int]:
+    result = list(docids.difference(set(exclude)))
+    result.sort(key=lambda x: '{0:0>8}'.format(x))
     return result
 
 
-
-def main():
-    index = json.load(open("dictionary.json"))
-    documents_list = json.load(open("posting_lists.json"))
-
-    all_document_ids = set([document["id"] for document in documents_list])
-    all_documents = {
-        document["id"]:
-            {
-                "title": document["title"],
-                "body": document["body"]
-            }
-        for document in documents_list}
-
-    stemmer = SnowballStemmer("english")
-
-    print("Enter the search query, to exit type 'exit'")
-
-    while True:
-        query = input("> ")
+def search_function(query):
+    while True:        
         if query.lower() == "exit":
             break
 
@@ -101,10 +51,13 @@ def main():
 
         for token in rpn:
             if token not in operators:
-                term = stemmer.stem(token)
-
                 # get documents for term using index (or [] if term not found)
-                documents = index[term] if term in index else []
+                if token in dictionary_list:
+                    id = dictionary_list[token]["ID"]
+                    documents = []
+                    for doc_id in posting_list["%s" % id].keys(): documents.append(doc_id)
+                else:
+                    documents = []
                 stack.append(documents)
             else:
                 if token == "AND":
@@ -117,11 +70,46 @@ def main():
                     stack.append(perform_OR(left_operand, right_operand))
                 elif token == "NOT":
                     operand = stack.pop()
-                    stack.append(perform_NOT(operand, all_document_ids))
+                    stack.append(perform_NOT(operand, docids))
 
-        print("Found", len(stack[0]), "documents:", stack[0])
-        print("-" * 40)
+        stack[0].sort(key=lambda x: '{0:0>8}'.format(x))
+        return ("Frequency: %i" % len(stack[0]), stack[0])
 
 
-if __name__ == '__main__':
-    main()
+
+### GUI section start  
+root = Tk()
+root.geometry("800x600")
+root.title("Search box")
+  
+def Take_input():
+    INPUT = input_text.get("1.0", "end-1c")
+    output.delete('1.0', END)
+    
+    OUTPUT = search_function(INPUT)
+    output.insert(END, OUTPUT)
+      
+label = Label(text = "Input your search query")
+input_text = Text(root, height = 1,
+                width = 50,
+                bg = "light yellow",
+                font=("Arial", 10)
+                )
+  
+output = Text(root, height = 30, 
+              width = 50, 
+              bg = "light cyan",
+              font=("Arial", 10),
+              )
+  
+display = Button(root, height = 1,
+                 width = 20, 
+                 text ="Show",
+                 command = lambda:Take_input())
+label.pack()
+input_text.pack()
+display.pack()
+output.pack()
+  
+mainloop()
+###GUI section end

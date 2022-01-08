@@ -1,6 +1,7 @@
 import os
 import sys
 import string
+import json
 from nltk.corpus import stopwords
 from collections import defaultdict
 from glob import glob
@@ -76,14 +77,17 @@ def helper_method():
      '''
     path1 = os.getcwd() + '\\raw_data\\'
     path2 = os.getcwd() + '\\processed_data\\'
-    contents = []
+    docids = {}
     i = 0
     for filename in glob(os.path.join(path1, '*.txt')):
         i +=1
         read_content = open(filename, 'r', encoding='utf-8').read().split('\n')
         doc_content = ''.join(map(str, read_content))
         doc = word_index(doc_content)
-        f = open(os.path.join(path2, "%s.txt" % i), 'w')
+        f = open(os.path.join(path2, os.path.basename(filename)), 'w')
         f.write(str(doc))
         
+        docids[os.path.splitext(os.path.basename(filename))[0]] = i
+        with open(os.path.join(os.getcwd(), "docids.json"), 'w') as outfile:
+            json.dump(docids, outfile)
 helper_method()

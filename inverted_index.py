@@ -13,7 +13,7 @@ word_posting_dict = {}
 # Build Inverted-Index for documents
 path = os.getcwd() + '\\processed_data\\'
 path2 = os.getcwd()
-
+docids = json.load(open("docids.json"))
 
 def init_dict_posting():
     i = 1
@@ -24,15 +24,15 @@ def init_dict_posting():
             word_dictionary_dict.update({
                 x[0]: {
                     "frequency": 0,
-                    "key": 0
+                    "ID": 0
                 }
             })
     for key, value in word_dictionary_dict.items():
-        value["key"] = i 
+        value["ID"] = i 
         i+=1
     for value in word_dictionary_dict.values():
         word_posting_dict.update({
-            value["key"]: {}
+            value["ID"]: {}
         })
         
 
@@ -46,9 +46,10 @@ def update_dict_postings():
                 word_dictionary_dict[x[0]]["frequency"] +=1
 
             #posting
-            k = word_dictionary_dict[x[0]]["key"]
+            k = word_dictionary_dict[x[0]]["ID"]
+            fn = os.path.splitext(os.path.basename(filename))[0]
             word_posting_dict[k].update({
-                "%s" % os.path.splitext(os.path.basename(filename))[0]: x[1]
+                "%s" % docids[fn]: x[1]
             })
 
 init_dict_posting()
