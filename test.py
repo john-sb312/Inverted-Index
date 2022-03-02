@@ -1,15 +1,15 @@
 import json
 import os
+import re
+from nltk.tokenize import word_tokenize
+from Shuntingyard import *
 from typing import List
 from tkinter import *
-from nltk.tokenize import word_tokenize
-from typing import List
-from shuntingyard_implement import *
-
+path = os.getcwd() + '/raw_data/'
 dictionary_list = json.load(open("dictionary.json"))
 posting_list = json.load(open("posting_lists.json"))
 docids_list  = json.load(open("docids.json"))
-docids = set([value for value in docids_list.values()])
+#docids = set([value for value in docids_list.values()])
 
 def perform_AND(left: List[int], right: List[int]) -> List[int]:
     result = []
@@ -24,12 +24,16 @@ def perform_OR(left: List[int], right: List[int]) -> List[int]:
     result = list(set(left) | set(right))
     return result
 
-
+'''
 def perform_NOT(exclude: List[int], docids) -> List[int]:
     result = list(docids.difference(set(exclude)))
     result.sort(key=lambda x: '{0:0>8}'.format(x))
     return result
-
+'''
+def perform_NOT(left: List[int], right: List[int]) -> List[int]:
+    result = list(set(left).difference(set(right)))
+    result.sort(key=lambda x: '{0:0>8}'.format(x))
+    return result
 
 def search_function(query):
     while True:        
@@ -69,11 +73,27 @@ def search_function(query):
                     left_operand = stack.pop()
                     stack.append(perform_OR(left_operand, right_operand))
                 elif token == "NOT":
-                    operand = stack.pop()
-                    stack.append(perform_NOT(operand, docids))
+                    #operand = stack.pop()
+                    right_operand = stack.pop()
+                    left_operand = stack.pop()
+                    stack.append(perform_NOT(left_operand, right_operand))
 
         stack[0].sort(key=lambda x: '{0:0>8}'.format(x))
-        return ("Frequency: %i" % len(stack[0]), stack[0])
+        
+        result = []
+        filenames = []
+        for x in stack[0][:3]:
+            #get first 3 filenames (as key in docids dict) from docids.json
+            filenames.append(list(docids_list.keys())[list(docids_list.values()).index(int(x))])
+        for filename in filenames:
+            content = open(os.path.join(path, filename), 'r').read()
+            
+        
+        return {
+            "Number of docs"    : len(stack[0]), 
+            "doclist"           : stack[0],
+            
+            }
 
 
 
@@ -82,7 +102,7 @@ root = Tk()
 root.geometry("800x600")
 root.title("Search box")
   
-def Take_input():
+def take_input():
     INPUT = input_text.get("1.0", "end-1c")
     output.delete('1.0', END)
     
@@ -105,7 +125,7 @@ output = Text(root, height = 30,
 display = Button(root, height = 1,
                  width = 20, 
                  text ="Show",
-                 command = lambda:Take_input())
+                 command = lambda:take_input())
 label.pack()
 input_text.pack()
 display.pack()

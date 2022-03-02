@@ -87,7 +87,7 @@ def helper_method():
         f = open(os.path.join(path2, os.path.basename(filename)), 'w')
         f.write(str(doc))
         
-        docids[os.path.splitext(os.path.basename(filename))[0]] = i
+        docids[os.path.basename(filename)] = i
         with open(os.path.join(os.getcwd(), "docids.json"), 'w') as outfile:
             json.dump(docids, outfile)
 helper_method()
